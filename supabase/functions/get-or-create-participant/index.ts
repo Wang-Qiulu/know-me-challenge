@@ -13,6 +13,13 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
+// 显式 CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -26,10 +33,13 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
   if (req.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
@@ -39,7 +49,7 @@ Deno.serve(async (req: Request) => {
   } catch {
     return new Response(JSON.stringify({ error: 'invalid_json' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
@@ -47,14 +57,14 @@ Deno.serve(async (req: Request) => {
   if (!invite_slug || !anon_token) {
     return new Response(JSON.stringify({ error: 'missing_params' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
   if (anon_token.length < 16 || anon_token.length > 128) {
     return new Response(JSON.stringify({ error: 'invalid_anon_token' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
@@ -71,28 +81,28 @@ Deno.serve(async (req: Request) => {
   if (cErr) {
     return new Response(JSON.stringify({ error: 'db_error', detail: cErr.message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
   if (!challenge) {
     return new Response(JSON.stringify({ error: 'challenge_not_found' }), {
       status: 404,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
   if (challenge.status === 'closed') {
     return new Response(JSON.stringify({ error: 'challenge_closed', challenge_id: challenge.id }), {
       status: 410,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
   if (challenge.status !== 'published') {
     return new Response(JSON.stringify({ error: 'challenge_not_published' }), {
       status: 403,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
@@ -120,7 +130,7 @@ Deno.serve(async (req: Request) => {
     if (pErr || !created) {
       return new Response(
         JSON.stringify({ error: 'create_participant_failed', detail: pErr?.message }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } },
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
     participantId = created.id;
@@ -132,6 +142,6 @@ Deno.serve(async (req: Request) => {
       challenge_id: challenge.id,
       challenge_status: challenge.status,
     }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } },
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 });

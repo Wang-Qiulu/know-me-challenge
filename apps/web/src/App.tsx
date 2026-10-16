@@ -4,6 +4,7 @@ import Home from '@/routes/Home';
 import Create from '@/routes/Create';
 import CreatePreview from '@/routes/CreatePreview';
 import CreateSuccess from '@/routes/CreateSuccess';
+import InviteEntry from '@/routes/InviteEntry';
 import Quiz from '@/routes/Quiz';
 import Result from '@/routes/Result';
 import Leaderboard from '@/routes/Leaderboard';
@@ -30,7 +31,7 @@ export default function App() {
         <Route path="/create" element={<Create />} />
         <Route path="/create/preview" element={<CreatePreview />} />
         <Route path="/create/success" element={<CreateSuccess />} />
-        <Route path="/c/:inviteSlug" element={<Create />} />
+        <Route path="/c/:inviteSlug" element={<InviteEntry />} />
         <Route path="/c/:inviteSlug/quiz" element={<Quiz />} />
         <Route path="/c/:inviteSlug/result/:shareSlug" element={<Result />} />
         <Route path="/c/:inviteSlug/leaderboard" element={<Leaderboard />} />

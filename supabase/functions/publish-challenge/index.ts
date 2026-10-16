@@ -5,27 +5,24 @@
 // 入参：
 //   {
 //     title?: string,                 // 默认 "你有多懂我？"
-//     questions: [
-//       { text: string, options: string[2..6], correct_option: number }
-//     ]                               // 长度必须 = 5
+//     questions: [{ text, options, correct_option }]   // 长度 = 5
 //   }
 // 出参：
 //   {
-//     challenge_id,
-//     invite_slug,                    // 邀请链接用
-//     manage_slug,                    // 管理链接用
-//     manage_token,                   // ⚠️ 明文，只返回这一次，用户必须自己保管
+//     challenge_id, invite_slug, manage_slug, manage_token   ⚠️ manage_token 仅此一次
 //   }
-//
-// 安全：
-//   - manage_token 用 Web Crypto 生成 12 字符 base36（≈ 47 bits 熵）
-//   - 数据库存 SHA256(manage_token)，永不存明文
-//   - 同一前端页面在展示 manage_token 后立即 clear 内存 + 引导用户复制
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+// 显式 CORS headers（保险起见手动加，避免新版默认行为差异）
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 async function sha256Hex(input: string): Promise<string> {
   const buf = new TextEncoder().encode(input);
@@ -61,15 +58,17 @@ async function uniqueSlug(
 
 interface PublishRequest {
   title?: string;
-  questions?: {
-    text: string;
-    options: string[];
-    correct_option: number;
-  }[];
+  questions?: { text: string; options: string[]; correct_option: number }[];
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  // CORS 预检
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+  if (req.method !== 'POST') {
+    return json({ error: 'method_not_allowed' }, 405);
+  }
 
   let body: PublishRequest;
   try {
@@ -81,7 +80,6 @@ Deno.serve(async (req: Request) => {
   const title = (body.title ?? '你有多懂我？').trim().slice(0, 50);
   const questions = body.questions;
 
-  // ---- 基础校验
   if (!title) return json({ error: 'invalid_title' }, 400);
   if (!Array.isArray(questions)) return json({ error: 'invalid_questions' }, 400);
   if (questions.length !== 5) {
@@ -112,13 +110,11 @@ Deno.serve(async (req: Request) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // 1) 生成唯一 slug
   const inviteSlug = await uniqueSlug(supabase, 'challenges', 'slug', 8);
   const manageSlug = await uniqueSlug(supabase, 'challenges', 'manage_slug', 10);
   const manageToken = generateSlug(12);
-
-  // 2) 写 challenge
   const manageTokenHash = await sha256Hex(manageToken);
+
   const { data: challenge, error: cErr } = await supabase
     .from('challenges')
     .insert({
@@ -136,7 +132,6 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'insert_challenge_failed', detail: cErr?.message }, 500);
   }
 
-  // 3) 写 questions
   const rows = questions.map((q, idx) => ({
     challenge_id: challenge.id,
     position: idx + 1,
@@ -148,12 +143,10 @@ Deno.serve(async (req: Request) => {
   const { error: qErr } = await supabase.from('questions').insert(rows);
 
   if (qErr) {
-    // 回滚 challenge
     await supabase.from('challenges').delete().eq('id', challenge.id);
     return json({ error: 'insert_questions_failed', detail: qErr.message }, 500);
   }
 
-  // 4) 返回 slug + token（token 明文只此一次！）
   return json(
     {
       challenge_id: challenge.id,
@@ -168,6 +161,6 @@ Deno.serve(async (req: Request) => {
 function json(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
