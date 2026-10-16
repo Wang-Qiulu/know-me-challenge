@@ -86,9 +86,7 @@ export default function Result() {
   if (state === 'config_error') {
     return (
       <Card>
-        <CardContent className="pt-6 text-sm text-destructive">
-          前端未配置 Supabase
-        </CardContent>
+        <CardContent className="text-destructive pt-6 text-sm">前端未配置 Supabase</CardContent>
       </Card>
     );
   }
@@ -100,9 +98,7 @@ export default function Result() {
           <CardTitle>成绩不存在</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            这个分享链接可能无效或已被删除
-          </p>
+          <p className="text-muted-foreground text-sm">这个分享链接可能无效或已被删除</p>
           <Button asChild className="mt-4" variant="outline">
             <Link to="/">返回首页</Link>
           </Button>
@@ -114,7 +110,7 @@ export default function Result() {
   if (state === 'network_error' || (state === 'loading' && !data)) {
     return (
       <Card>
-        <CardContent className="flex items-center gap-3 pt-6 text-sm text-muted-foreground">
+        <CardContent className="text-muted-foreground flex items-center gap-3 pt-6 text-sm">
           <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
           {state === 'loading' ? '加载成绩中…' : errorMsg || '网络异常'}
         </CardContent>
@@ -145,11 +141,11 @@ export default function Result() {
   return (
     <div className="flex flex-1 flex-col gap-6 py-4">
       {/* 头部：分数 + 称号 */}
-      <header className="rounded-lg border bg-gradient-to-br from-primary/5 to-primary/15 p-6 text-center">
-        <p className="text-sm text-muted-foreground">{submission.nickname} 的成绩</p>
+      <header className="from-primary/5 to-primary/15 rounded-lg border bg-gradient-to-br p-6 text-center">
+        <p className="text-muted-foreground text-sm">{submission.nickname} 的成绩</p>
         <div className="mt-2 flex items-baseline justify-center gap-2">
-          <span className="text-5xl font-bold text-primary">{correctCount}</span>
-          <span className="text-2xl text-muted-foreground">/ {fullCount}</span>
+          <span className="text-primary text-5xl font-bold">{correctCount}</span>
+          <span className="text-muted-foreground text-2xl">/ {fullCount}</span>
         </div>
         <p className="mt-3 text-2xl font-semibold">{submission.title_label}</p>
       </header>
@@ -168,7 +164,9 @@ export default function Result() {
               <div
                 key={qi}
                 className={`rounded-md border p-3 ${
-                  isRight ? 'border-green-500/40 bg-green-50/50 dark:bg-green-950/20' : 'border-destructive/40 bg-destructive/5'
+                  isRight
+                    ? 'border-green-500/40 bg-green-50/50 dark:bg-green-950/20'
+                    : 'border-destructive/40 bg-destructive/5'
                 }`}
               >
                 <div className="flex items-start gap-2">
@@ -184,11 +182,15 @@ export default function Result() {
                 </div>
                 <div className="mt-2 space-y-1 pl-5 text-xs">
                   <p className="text-muted-foreground">
-                    你的答案：<span className="font-medium text-foreground">{q.options[userAns] ?? '（未答）'}</span>
+                    你的答案：
+                    <span className="text-foreground font-medium">
+                      {q.options[userAns] ?? '（未答）'}
+                    </span>
                   </p>
                   {!isRight && (
                     <p className="text-muted-foreground">
-                      正确答案：<span className="font-medium text-foreground">{q.options[correctAns]}</span>
+                      正确答案：
+                      <span className="text-foreground font-medium">{q.options[correctAns]}</span>
                     </p>
                   )}
                 </div>
@@ -206,32 +208,36 @@ export default function Result() {
         <CardContent className="space-y-3">
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">个人成绩链接（发给创建者）</span>
+              <span className="text-muted-foreground text-xs">个人成绩链接（发给创建者）</span>
               <button
                 type="button"
                 onClick={() => {
                   track('result_shared');
                   copyText(myShareUrl, setCopiedShare);
                 }}
-                className="text-xs text-primary hover:underline"
+                className="text-primary text-xs hover:underline"
               >
                 {copiedShare ? '已复制 ✓' : '复制'}
               </button>
             </div>
-            <div className="break-all rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs">{myShareUrl}</div>
+            <div className="bg-muted/30 break-all rounded-md border px-3 py-2 font-mono text-xs">
+              {myShareUrl}
+            </div>
           </div>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">邀请朋友（让他们也来答）</span>
+              <span className="text-muted-foreground text-xs">邀请朋友（让他们也来答）</span>
               <button
                 type="button"
                 onClick={() => copyText(inviteUrl, setCopiedInvite)}
-                className="text-xs text-primary hover:underline"
+                className="text-primary text-xs hover:underline"
               >
                 {copiedInvite ? '已复制 ✓' : '复制'}
               </button>
             </div>
-            <div className="break-all rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs">{inviteUrl}</div>
+            <div className="bg-muted/30 break-all rounded-md border px-3 py-2 font-mono text-xs">
+              {inviteUrl}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -241,12 +247,7 @@ export default function Result() {
         <Button asChild size="lg">
           <Link to={`/c/${challenge.slug}/leaderboard`}>查看排行榜</Link>
         </Button>
-        <Button
-          asChild
-          variant="outline"
-          size="lg"
-          onClick={() => track('challenge_create_again')}
-        >
+        <Button asChild variant="outline" size="lg" onClick={() => track('challenge_create_again')}>
           <Link to="/create">创建自己的挑战</Link>
         </Button>
         <Button asChild variant="link">

@@ -46,7 +46,12 @@ Deno.serve(async (req: Request) => {
   }
 
   const { share_slug } = body;
-  if (!share_slug || typeof share_slug !== 'string' || share_slug.length < 6 || share_slug.length > 32) {
+  if (
+    !share_slug ||
+    typeof share_slug !== 'string' ||
+    share_slug.length < 6 ||
+    share_slug.length > 32
+  ) {
     return json({ error: 'invalid_share_slug' }, 400);
   }
 
@@ -105,14 +110,14 @@ Deno.serve(async (req: Request) => {
         answers: submission.answers,
         created_at: submission.created_at,
       },
-      questions: (questions as { position: number; text: string; options: string[]; correct_option: number }[]).map(
-        (q) => ({
-          position: q.position,
-          text: q.text,
-          options: q.options,
-          correct_option: q.correct_option,
-        }),
-      ),
+      questions: (
+        questions as { position: number; text: string; options: string[]; correct_option: number }[]
+      ).map((q) => ({
+        position: q.position,
+        text: q.text,
+        options: q.options,
+        correct_option: q.correct_option,
+      })),
       per_question_correct: perQuestionCorrect,
     },
     200,
