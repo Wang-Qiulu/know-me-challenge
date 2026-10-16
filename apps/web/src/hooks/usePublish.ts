@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { type DraftChallenge, validateDraft } from '@/types/challenge';
 import { supabase } from '@/lib/supabase';
 
+/** 前端统一使用 camelCase */
 export interface PublishSuccess {
   challengeId: string;
   inviteSlug: string;
@@ -12,6 +13,24 @@ export interface PublishSuccess {
 export interface PublishError {
   code: string;
   message: string;
+}
+
+/** Edge Function publish-challenge 实际返回（snake_case） */
+interface RawPublishResponse {
+  challenge_id: string;
+  invite_slug: string;
+  manage_slug: string;
+  manage_token: string;
+}
+
+/** snake_case → camelCase 转换 */
+function toPublishSuccess(raw: RawPublishResponse): PublishSuccess {
+  return {
+    challengeId: raw.challenge_id,
+    inviteSlug: raw.invite_slug,
+    manageSlug: raw.manage_slug,
+    manageToken: raw.manage_token,
+  };
 }
 
 /**
@@ -39,7 +58,7 @@ export function usePublish() {
     setSuccess(null);
 
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke<PublishSuccess>(
+      const { data, error: fnErr } = await supabase.functions.invoke<RawPublishResponse>(
         'publish-challenge',
         {
           body: {
@@ -70,8 +89,9 @@ export function usePublish() {
         return null;
       }
 
-      setSuccess(data);
-      return data;
+      const mapped = toPublishSuccess(data);
+      setSuccess(mapped);
+      return mapped;
     } catch (e) {
       const message = e instanceof Error ? e.message : '未知错误';
       setError({ code: 'network_error', message });
