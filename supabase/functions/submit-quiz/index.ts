@@ -46,6 +46,9 @@ interface ExistingSubmission {
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
   if (req.method !== 'POST') {
     return json({ error: 'method_not_allowed' }, 405);
   }
