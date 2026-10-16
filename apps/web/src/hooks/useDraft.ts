@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { type DraftChallenge, createEmptyDraft } from '@/types/challenge';
 
-const STORAGE_KEY = 'kmc:draft:v1';
+const STORAGE_KEY = 'kmc:draft:v2';
 
 /** 创建挑战的草稿持久化 hook（页面刷新不丢失） */
 export function useDraft() {

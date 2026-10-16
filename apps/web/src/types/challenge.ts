@@ -16,16 +16,46 @@ export const REQUIRED_QUESTION_COUNT = 5;
 export const MAX_OPTIONS = 6;
 export const MIN_OPTIONS = 2;
 
-/** 构造空草稿（5 道题，每道 4 个空选项） */
+/**
+ * 5 道默认题目与选项（与本地演示数据保持一致）
+ * 填空式改为模板式：用户看到完整示例，编辑更快、表达更清晰
+ * correctOption 是"建议"的默认选项，创建者必须改成自己的真实答案才能发布
+ */
 export function createEmptyDraft(): DraftChallenge {
   return {
     title: '你有多懂我？',
-    questions: Array.from({ length: REQUIRED_QUESTION_COUNT }, (_, i) => ({
-      position: i + 1,
-      text: '',
-      options: ['', '', '', ''],
-      correctOption: 0,
-    })),
+    questions: [
+      {
+        position: 1,
+        text: '我最喜欢的电影类型是？',
+        options: ['动作冒险', '爱情文艺', '科幻悬疑', '喜剧动画'],
+        correctOption: 2,
+      },
+      {
+        position: 2,
+        text: '我周末最常做的事是？',
+        options: ['出门社交', '宅家刷剧', '运动健身', '学习充电'],
+        correctOption: 1,
+      },
+      {
+        position: 3,
+        text: '我最怕的事情是？',
+        options: ['恐高', '社恐', '小动物', '看医生'],
+        correctOption: 3,
+      },
+      {
+        position: 4,
+        text: '我最想去的旅行目的地是？',
+        options: ['日本京都', '冰岛极光', '马尔代夫', '西藏高原'],
+        correctOption: 0,
+      },
+      {
+        position: 5,
+        text: '我最爱的食物是？',
+        options: ['火锅烧烤', '甜品蛋糕', '日料寿司', '家常小炒'],
+        correctOption: 0,
+      },
+    ],
   };
 }
 
