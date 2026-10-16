@@ -97,7 +97,7 @@ know-me-challenge/
 ## 阶段进度
 
 - [x] **阶段 0** — 项目初始化与脚手架 ✅
-- [ ] 阶段 1 — Supabase 数据层 + RLS + Edge Functions
+- [x] **阶段 1** — Supabase 数据层 + RLS + Edge Functions ✅
 - [ ] 阶段 2 — 创建挑战主流程
 - [ ] 阶段 3 — 邀请链接 + 匿名身份
 - [ ] 阶段 4 — 答题 + 服务端计分
