@@ -11,37 +11,92 @@
 
 - [`需求文档.md`](./需求文档.md) — 产品 PRD（V1.0）
 - [`执行计划.md`](./执行计划.md) — 12 个阶段的分阶段开发计划
+- [`apps/web/`](./apps/web) — React + TypeScript 前端（Vite + Tailwind + shadcn/ui）
 
 ## 技术栈
 
-- 前端：React + TypeScript + Vite + Tailwind CSS
-- 后端：Supabase（Postgres + RLS + Edge Functions + Auth）
-- 部署：Vercel / Netlify（前端）+ Supabase Cloud（后端）
+- 前端：React 18 + TypeScript + Vite 6 + Tailwind CSS + shadcn/ui 风格组件
+- 路由：React Router 7
+- 后端：Supabase（Postgres + RLS + Edge Functions）— 阶段 1 接入
+- 包管理：pnpm 10（monorepo workspace）
+- 代码质量：ESLint 9（flat config）+ Prettier + Husky pre-commit
+- 部署：Vercel（前端）+ Supabase Cloud（后端）
 
 ## 本地开发
 
-> 待补充（在阶段 0 完成脚手架后回写本节）
+### 环境要求
+
+- Node.js >= 20
+- pnpm >= 10（推荐通过 Corepack 启用：`corepack enable`）
+
+### 启动步骤
 
 ```bash
-# 安装依赖
-npm install
+# 1. 安装依赖
+pnpm install
 
-# 启动本地开发
-npm run dev
+# 2. 配置环境变量（Supabase 项目，阶段 1 后才会有真实值）
+cp apps/web/.env.example apps/web/.env.local
+# 然后填入 VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+
+# 3. 启动 web 子包
+pnpm dev
+
+# 4. 浏览器访问
+# http://localhost:5173
 ```
 
-## 环境变量
-
-参考 `.env.example`（阶段 0 添加）：
+### 常用命令
 
 ```bash
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+pnpm dev               # 启动前端（vite dev）
+pnpm build             # 类型检查 + 生产构建
+pnpm preview           # 本地预览生产构建产物
+pnpm lint              # ESLint 检查
+pnpm typecheck         # TypeScript 类型检查
+pnpm format            # Prettier 格式化
+pnpm format:check      # 仅检查格式
+```
+
+## 目录结构
+
+```
+know-me-challenge/
+├── apps/
+│   └── web/                  # 前端
+│       ├── src/
+│       │   ├── routes/        # 路由页面（Home/Create/Quiz/Result/...）
+│       │   ├── components/
+│       │   │   ├── ui/        # shadcn 风格基础组件
+│       │   │   └── layout/    # 布局组件
+│       │   ├── lib/           # supabase / utils / track
+│       │   ├── hooks/
+│       │   ├── types/
+│       │   ├── App.tsx        # 路由配置
+│       │   ├── main.tsx       # 入口
+│       │   └── index.css      # Tailwind + shadcn 主题变量
+│       ├── public/
+│       ├── index.html
+│       ├── vite.config.ts
+│       ├── tailwind.config.ts
+│       ├── tsconfig.json
+│       ├── eslint.config.js
+│       └── .env.example
+├── .husky/                    # pre-commit
+├── .gitignore
+├── .prettierrc.json
+├── .prettierignore
+├── .npmrc
+├── package.json               # workspace root
+├── pnpm-workspace.yaml
+├── 需求文档.md
+├── 执行计划.md
+└── README.md
 ```
 
 ## 阶段进度
 
-- [x] **阶段 0** — 项目初始化与脚手架（进行中）
+- [x] **阶段 0** — 项目初始化与脚手架 ✅
 - [ ] 阶段 1 — Supabase 数据层 + RLS + Edge Functions
 - [ ] 阶段 2 — 创建挑战主流程
 - [ ] 阶段 3 — 邀请链接 + 匿名身份

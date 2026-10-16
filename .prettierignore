@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+.cache
+.turbo
+.vercel
+.netlify
+pnpm-lock.yaml
+*.min.js
+*.min.css

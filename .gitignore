@@ -41,3 +41,15 @@ coverage/
 # Vercel / Netlify
 .vercel/
 .netlify/
+
+# Monorepo
+apps/*/node_modules
+apps/*/dist
+apps/*/.vite
+apps/*/coverage
+
+# Husky
+.husky/_/
+
+# TypeScript 增量编译缓存
+*.tsbuildinfo
