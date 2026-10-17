@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { track } from '@/lib/track';
-import { INVITE_TEMPLATES, renderTemplate, type ShareTemplate } from '@/lib/share-templates';
+import { INVITE_TEMPLATES, renderInviteTemplate, type InviteTemplate } from '@/lib/share-templates';
 
 interface LocationState {
   challengeId: string;
@@ -50,7 +50,7 @@ export default function CreateSuccess() {
   const navigate = useNavigate();
   const state = location.state as LocationState | null;
   const [copy, setCopy] = useState<CopyState>({ invite: false, manageUrl: false });
-  const [shareTpl, setShareTpl] = useState<ShareTemplate>(() => INVITE_TEMPLATES[0]);
+  const [shareTpl, setShareTpl] = useState<InviteTemplate>(() => INVITE_TEMPLATES[0]);
 
   useEffect(() => {
     // 没有 state 直接进 → 回到首页
@@ -66,7 +66,7 @@ export default function CreateSuccess() {
   const inviteUrl = state ? `${baseUrl}/c/${state.inviteSlug}` : '';
   const manageUrl = state ? `${baseUrl}/m/${state.manageSlug}` : '';
   const shareText = useMemo(
-    () => (inviteUrl ? renderTemplate(shareTpl, inviteUrl) : ''),
+    () => (inviteUrl ? renderInviteTemplate(shareTpl, inviteUrl) : ''),
     [shareTpl, inviteUrl],
   );
 

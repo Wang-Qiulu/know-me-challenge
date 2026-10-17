@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/track';
+import { RESULT_TEMPLATES, renderResultTemplate, type ResultTemplate } from '@/lib/share-templates';
 
 interface Question {
   position: number;
@@ -38,12 +39,23 @@ interface ResultPayload {
 type LoadState = 'loading' | 'ready' | 'not_found' | 'network_error' | 'config_error';
 
 export default function Result() {
-  const { shareSlug } = useParams<{ inviteSlug: string; shareSlug: string }>();
+  const { shareSlug } = useParams<{ shareSlug: string; inviteSlug: string }>();
   const [state, setState] = useState<LoadState>('loading');
   const [data, setData] = useState<ResultPayload | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [copiedShare, setCopiedShare] = useState(false);
   const [copiedInvite, setCopiedInvite] = useState(false);
+  const [resultShareTpl, setResultShareTpl] = useState<ResultTemplate>(() => RESULT_TEMPLATES[0]);
+
+  // Hooks 必须在所有 early return 之前（react-hooks/rules-of-hooks）
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const myShareUrl =
+    shareSlug && data ? `${baseUrl}/c/${data.challenge.slug}/result/${shareSlug}` : '';
+  const inviteUrl = data ? `${baseUrl}/c/${data.challenge.slug}` : '';
+  const resultShareText = useMemo(
+    () => (myShareUrl ? renderResultTemplate(resultShareTpl, myShareUrl) : ''),
+    [resultShareTpl, myShareUrl],
+  );
 
   useEffect(() => {
     if (!shareSlug) return;
@@ -134,10 +146,6 @@ export default function Result() {
     }
   };
 
-  const baseUrl = window.location.origin;
-  const myShareUrl = `${baseUrl}/c/${challenge.slug}/result/${shareSlug}`;
-  const inviteUrl = `${baseUrl}/c/${challenge.slug}`;
-
   return (
     <div className="flex flex-1 flex-col gap-6 py-4">
       {/* 头部：分数 + 称号 */}
@@ -203,30 +211,70 @@ export default function Result() {
       {/* 分享 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">分享这份成绩</CardTitle>
+          <CardTitle className="text-base">分享给创建者</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="space-y-1">
+          {/* 个人成绩链接 + 营销文案 */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-xs">个人成绩链接（发给创建者）</span>
+              <span className="text-muted-foreground text-xs">
+                文案风格：{resultShareTpl.emoji} {resultShareTpl.title}
+              </span>
               <button
                 type="button"
                 onClick={() => {
-                  track('result_shared');
-                  copyText(myShareUrl, setCopiedShare);
+                  let next = resultShareTpl;
+                  while (next.id === resultShareTpl.id) {
+                    next = RESULT_TEMPLATES[Math.floor(Math.random() * RESULT_TEMPLATES.length)];
+                  }
+                  setResultShareTpl(next);
+                  setCopiedShare(false);
                 }}
                 className="text-primary text-xs hover:underline"
               >
-                {copiedShare ? '已复制 ✓' : '复制'}
+                换一个
               </button>
             </div>
-            <div className="bg-muted/30 break-all rounded-md border px-3 py-2 font-mono text-xs">
+            <pre className="bg-muted/30 whitespace-pre-wrap break-words rounded-md border px-3 py-2 text-xs">
+              {resultShareText}
+            </pre>
+          </div>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => {
+              track('result_shared');
+              copyText(resultShareText, setCopiedShare);
+            }}
+          >
+            {copiedShare ? '已复制 ✓' : '复制整段文案'}
+          </Button>
+          <details className="text-muted-foreground text-xs">
+            <summary className="hover:text-foreground cursor-pointer">只复制纯链接</summary>
+            <div className="bg-muted/20 mt-2 break-all rounded-md border px-3 py-2 font-mono text-xs">
               {myShareUrl}
             </div>
-          </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 w-full"
+              onClick={() => copyText(myShareUrl, setCopiedShare)}
+            >
+              只复制链接
+            </Button>
+          </details>
+        </CardContent>
+      </Card>
+
+      {/* 邀请朋友（让创建者也能传播） */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">邀请朋友也来答</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground text-xs">邀请朋友（让他们也来答）</span>
+              <span className="text-muted-foreground text-xs">邀请链接</span>
               <button
                 type="button"
                 onClick={() => copyText(inviteUrl, setCopiedInvite)}

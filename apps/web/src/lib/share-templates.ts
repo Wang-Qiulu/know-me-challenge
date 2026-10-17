@@ -1,14 +1,15 @@
-/** 分享文案模板（邀请链接） */
+/** 分享文案模板 */
 
-export interface ShareTemplate {
+/* ============ 邀请链接（发给朋友，邀请来挑战） ============ */
+
+export interface InviteTemplate {
   id: string;
   emoji: string;
   title: string;
   body: string;
 }
 
-/** 4 个模板，每次复制时随机选一个 */
-export const INVITE_TEMPLATES: ShareTemplate[] = [
+export const INVITE_TEMPLATES: InviteTemplate[] = [
   {
     id: 'challenge',
     emoji: '🎯',
@@ -44,12 +45,66 @@ export const INVITE_TEMPLATES: ShareTemplate[] = [
   },
 ];
 
-/** 随机选一个模板（基于时间戳+random） */
-export function pickRandomTemplate(): ShareTemplate {
+export function pickRandomInviteTemplate(): InviteTemplate {
   return INVITE_TEMPLATES[Math.floor(Math.random() * INVITE_TEMPLATES.length)];
 }
 
-/** 把模板里的 {url} 占位符替换成真实链接 */
-export function renderTemplate(template: ShareTemplate, url: string): string {
+export function renderInviteTemplate(template: InviteTemplate, url: string): string {
+  return template.body.replace(/\{url\}/g, url);
+}
+
+/* ============ 个人成绩（发给创建者，纯营销文案） ============
+ *
+ * 文案**不带**分数/称号 —— 让创建者点链接去成绩页自己看
+ * 实现简单：和邀请文案一样，4 选 1 随机，只用 {url} 占位符
+ * 这样不需要动态填值，是纯静态模板
+ */
+
+export interface ResultTemplate {
+  id: string;
+  emoji: string;
+  title: string;
+  body: string;
+}
+
+export const RESULT_TEMPLATES: ResultTemplate[] = [
+  {
+    id: 'curious',
+    emoji: '🤔',
+    title: '好奇型',
+    body: `🤔 我刚答完了你的挑战！
+你来猜猜我能答对几道 👉
+{url}`,
+  },
+  {
+    id: 'tease',
+    emoji: '😏',
+    title: '调皮型',
+    body: `😏 我刚挑战完你的题了！
+快来点评一下我的表现吧 💪
+{url}`,
+  },
+  {
+    id: 'mystery',
+    emoji: '🔮',
+    title: '神秘型',
+    body: `🔮 我答完了你的挑战……
+你知道我答对了几道吗？
+{url}`,
+  },
+  {
+    id: 'humble',
+    emoji: '💭',
+    title: '坦诚型',
+    body: `💭 我答完你的题了，等你来点评 ✨
+{url}`,
+  },
+];
+
+export function pickRandomResultTemplate(): ResultTemplate {
+  return RESULT_TEMPLATES[Math.floor(Math.random() * RESULT_TEMPLATES.length)];
+}
+
+export function renderResultTemplate(template: ResultTemplate, url: string): string {
   return template.body.replace(/\{url\}/g, url);
 }
