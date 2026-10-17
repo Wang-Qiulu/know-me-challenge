@@ -8,13 +8,11 @@ interface LocationState {
   challengeId: string;
   inviteSlug: string;
   manageSlug: string;
-  manageToken: string;
 }
 
 interface CopyState {
   invite: boolean;
   manageUrl: boolean;
-  manageToken: boolean;
 }
 
 function CopyableField({
@@ -50,11 +48,7 @@ export default function CreateSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
   const state = location.state as LocationState | null;
-  const [copy, setCopy] = useState<CopyState>({
-    invite: false,
-    manageUrl: false,
-    manageToken: false,
-  });
+  const [copy, setCopy] = useState<CopyState>({ invite: false, manageUrl: false });
 
   useEffect(() => {
     // 没有 state 直接进 → 回到首页
@@ -70,7 +64,6 @@ export default function CreateSuccess() {
   const baseUrl = window.location.origin;
   const inviteUrl = `${baseUrl}/c/${state.inviteSlug}`;
   const manageUrl = `${baseUrl}/m/${state.manageSlug}`;
-  const manageToken = state.manageToken;
 
   const copyTo = async (text: string, key: keyof CopyState) => {
     try {
@@ -104,29 +97,22 @@ export default function CreateSuccess() {
         </CardContent>
       </Card>
 
-      {/* 管理凭证（核心：明文一次性 + 强提示） */}
-      <Card className="border-amber-500/40 bg-amber-50/50 dark:bg-amber-950/20">
+      {/* 管理链接（自带凭证：点进去就能管理） */}
+      <Card className="border-primary/40 bg-primary/5">
         <CardHeader>
-          <CardTitle className="text-base text-amber-700 dark:text-amber-300">
-            🔐 管理凭证（仅展示一次！）
-          </CardTitle>
+          <CardTitle className="text-base">🔗 管理链接（私密）</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-            ⚠️ 请立即复制并妥善保管。丢失后只能删除挑战重建。
+          <p className="text-muted-foreground text-sm">
+            点进去可以修改标题、查看参与记录、关闭或删除挑战。
+            <br />
+            ⚠️ 这是私密链接，请勿公开分享。
           </p>
           <CopyableField
             label="管理链接"
             value={manageUrl}
             copied={copy.manageUrl}
             onCopy={() => copyTo(manageUrl, 'manageUrl')}
-          />
-          <CopyableField
-            label="管理 token（修改/关闭/删除时需要）"
-            value={manageToken}
-            hint="建议存到手机备忘录或密码管理器"
-            copied={copy.manageToken}
-            onCopy={() => copyTo(manageToken, 'manageToken')}
           />
         </CardContent>
       </Card>
@@ -139,10 +125,6 @@ export default function CreateSuccess() {
           <Link to="/">返回首页</Link>
         </Button>
       </div>
-
-      <p className="text-muted-foreground text-center text-xs">
-        凭据不会保存在浏览器，刷新本页后只能重新创建挑战。
-      </p>
     </div>
   );
 }

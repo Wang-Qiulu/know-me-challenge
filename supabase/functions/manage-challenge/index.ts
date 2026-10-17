@@ -1,47 +1,45 @@
 // supabase/functions/manage-challenge/index.ts
 //
-// 用途：管理挑战（查看、改标题、关闭、删除）
-// 权限：必须持有 manage_slug + manage_token 明文
-// 入参：{ manage_slug, manage_token, action, data? }
+// 用途：管理挑战（查看 / 改标题 / 关闭 / 重新开启 / 删除）
+// 权限：持有 manage_slug 即可操作（slug 本身就是凭证，10 字符 base36 ≈ 47 bits 熵）
+// 入参：{ manage_slug, action, data? }
 //   action: 'get_info' | 'update_title' | 'close' | 'reopen' | 'delete'
 //   data:   { title?: string }  (update_title 时必填)
 //
-// 安全：
-//   - manage_token 仅以 hash 存；明文只存在用户本地
-//   - 所有写操作都用 service_role
-//   - 删除为软删（status=deleted），关联数据保留
+// 设计决策（V1.1 简化）：
+//   - 不再要求 manage_token（用户体验上链接即可直接管理）
+//   - manage_token_hash 字段保留在 DB（兼容老数据，不再写入/校验）
+//   - 已删除挑战拒绝所有 action
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-// 显式 CORS headers
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-async function sha256Hex(input: string): Promise<string> {
-  const buf = new TextEncoder().encode(input);
-  const hashBuf = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(hashBuf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
 type Action = 'get_info' | 'update_title' | 'close' | 'reopen' | 'delete';
 
 interface ManageRequest {
   manage_slug?: string;
-  manage_token?: string;
   action?: Action;
   data?: { title?: string };
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   let body: ManageRequest;
   try {
@@ -50,31 +48,22 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'invalid_json' }, 400);
   }
 
-  const { manage_slug, manage_token, action, data } = body;
-  if (!manage_slug || !manage_token || !action) {
+  const { manage_slug, action, data } = body;
+  if (!manage_slug || !action) {
     return json({ error: 'missing_params' }, 400);
-  }
-  if (manage_token.length < 8 || manage_token.length > 128) {
-    return json({ error: 'invalid_token' }, 400);
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // 1) 校验凭证
-  const tokenHash = await sha256Hex(manage_token);
+  // 1) 查挑战（不再校验 token）
   const { data: challenge, error: cErr } = await supabase
     .from('challenges')
-    .select(
-      'id, slug, manage_slug, manage_token_hash, title, status, created_at, published_at, closed_at',
-    )
+    .select('id, slug, manage_slug, title, status, created_at, published_at, closed_at')
     .eq('manage_slug', manage_slug)
     .maybeSingle();
 
   if (cErr) return json({ error: 'db_error', detail: cErr.message }, 500);
   if (!challenge) return json({ error: 'challenge_not_found' }, 404);
-  if (challenge.manage_token_hash !== tokenHash) {
-    return json({ error: 'invalid_credentials' }, 403);
-  }
   if (challenge.status === 'deleted') {
     return json({ error: 'challenge_deleted' }, 403);
   }

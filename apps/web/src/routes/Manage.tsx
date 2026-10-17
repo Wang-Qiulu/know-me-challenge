@@ -24,42 +24,68 @@ interface ParticipantRow {
   created_at: string;
 }
 
-type ViewState =
-  | { kind: 'enter_token' } // 第一次进入：输入 token
-  | { kind: 'verifying' }
-  | { kind: 'verified'; info: ChallengeInfo }
-  | { kind: 'error'; message: string };
+type LoadState =
+  { kind: 'loading' } | { kind: 'ready'; info: ChallengeInfo } | { kind: 'error'; message: string };
 
-const SESSION_KEY = (slug: string) => `kmc:manage:${slug}`;
-
+/**
+ * 管理页（V1.1 简化）
+ *
+ * 设计：管理链接本身就是凭证 → 进入 /m/:manageSlug 直接展示管理面板
+ * 不再需要 manage_token 输入步骤（V1.0 PRD 原本需要，已废弃）
+ *
+ * 支持的 action：get_info / update_title / close / reopen / delete / load participants
+ */
 export default function Manage() {
   const { manageSlug } = useParams<{ manageSlug: string }>();
   const navigate = useNavigate();
 
-  const [view, setView] = useState<ViewState>({ kind: 'enter_token' });
-  const [token, setToken] = useState<string>('');
+  const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [editTitle, setEditTitle] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [participants, setParticipants] = useState<ParticipantRow[]>([]);
 
-  // 进入页面：尝试用 sessionStorage 的 token 自动验证
+  // 进入页面：直接调 get_info（manage_slug 本身就是凭证）
   useEffect(() => {
     if (!manageSlug) return;
-    let stored: string | null = null;
-    try {
-      stored = window.sessionStorage.getItem(SESSION_KEY(manageSlug));
-    } catch {
-      // noop
+    if (!supabase) {
+      setState({ kind: 'error', message: '前端未配置 Supabase' });
+      return;
     }
-    if (stored) {
-      setToken(stored);
-      verify(stored);
-    }
+    loadInfo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manageSlug]);
 
-  // 加载参与者列表（仅 verified 之后）
+  const loadInfo = async () => {
+    if (!manageSlug) return;
+    if (!supabase) {
+      setState({ kind: 'error', message: '前端未配置 Supabase' });
+      return;
+    }
+    setState({ kind: 'loading' });
+    const { data, error } = await supabase.functions.invoke<{ challenge: ChallengeInfo }>(
+      'manage-challenge',
+      { body: { manage_slug: manageSlug, action: 'get_info' } },
+    );
+    if (error || !data?.challenge) {
+      const status = (error as { context?: { status?: number } })?.context?.status;
+      const msg = (error as { message?: string })?.message ?? '';
+      let userMsg = '无法加载挑战';
+      if (status === 404) userMsg = '挑战不存在';
+      else if (status === 403) userMsg = '挑战已被删除';
+      else if (!status && (msg.includes('FunctionsFetchError') || msg.includes('Failed to send')))
+        userMsg = '网络异常，请检查后重试';
+      else if (msg) userMsg = `连接异常：${msg.slice(0, 80)}`;
+      setState({ kind: 'error', message: userMsg });
+      return;
+    }
+    setEditTitle(data.challenge.title);
+    setState({ kind: 'ready', info: data.challenge });
+    await loadParticipants(data.challenge.id);
+  };
+
   const loadParticipants = async (challengeId: string) => {
-    const { data } = await supabase!
+    if (!supabase) return;
+    const { data } = await supabase
       .from('submissions')
       .select('id, nickname, score, title_label, created_at')
       .eq('challenge_id', challengeId)
@@ -68,70 +94,12 @@ export default function Manage() {
     setParticipants((data as ParticipantRow[]) || []);
   };
 
-  // 验证 token
-  const verify = async (t: string) => {
-    if (!manageSlug) return;
+  const callAction = async (action: string, extra?: Record<string, unknown>) => {
+    if (!manageSlug || state.kind !== 'ready') return;
     if (!supabase) {
-      setView({ kind: 'error', message: '前端未配置 Supabase' });
+      alert('前端未配置 Supabase');
       return;
     }
-    setView({ kind: 'verifying' });
-    const { data, error } = await supabase.functions.invoke<{ challenge: ChallengeInfo }>(
-      'manage-challenge',
-      {
-        body: { manage_slug: manageSlug, manage_token: t, action: 'get_info' },
-      },
-    );
-    if (error || !data) {
-      const status = (error as { context?: { status?: number } })?.context?.status;
-      const msg = (error as { message?: string })?.message ?? '';
-      let userMsg = '凭证无效或挑战已删除';
-      if (!status) {
-        // 无 status 说明是网络/CORS/parse 错
-        if (msg.includes('FunctionsFetchError') || msg.includes('Failed to send')) {
-          userMsg = '网络异常，请检查后重试';
-        } else {
-          userMsg = `连接异常：${msg.slice(0, 80)}`;
-        }
-      } else if (status === 403) {
-        userMsg = '管理 token 不正确，请重新输入';
-      } else if (status === 404) {
-        userMsg = '挑战不存在或已删除';
-      } else if (status >= 500) {
-        userMsg = `服务器异常（${status}），请稍后重试`;
-      }
-      setView({ kind: 'error', message: userMsg });
-      // 只有 403（凭证错）才清 sessionStorage
-      if (status === 403) {
-        try {
-          window.sessionStorage.removeItem(SESSION_KEY(manageSlug!));
-        } catch {
-          // noop
-        }
-      }
-      return;
-    }
-    try {
-      window.sessionStorage.setItem(SESSION_KEY(manageSlug), t);
-    } catch {
-      // noop
-    }
-    setEditTitle(data.challenge.title);
-    setView({ kind: 'verified', info: data.challenge });
-    await loadParticipants(data.challenge.id);
-  };
-
-  const handleSubmitToken = async () => {
-    if (!token.trim()) {
-      setView({ kind: 'error', message: '请输入管理 token' });
-      return;
-    }
-    await verify(token.trim());
-  };
-
-  const callManage = async (action: string, extra?: Record<string, unknown>) => {
-    if (!manageSlug || view.kind !== 'verified') return;
-    if (!supabase) return;
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke<{ ok?: boolean }>(
@@ -139,7 +107,6 @@ export default function Manage() {
         {
           body: {
             manage_slug: manageSlug,
-            manage_token: token,
             action,
             data: extra,
           },
@@ -149,26 +116,11 @@ export default function Manage() {
         alert(`操作失败：${error?.message ?? '未知错误'}`);
         return;
       }
-      // 重新拉取信息
-      const { data: refreshed } = await supabase.functions.invoke<{ challenge: ChallengeInfo }>(
-        'manage-challenge',
-        { body: { manage_slug: manageSlug, manage_token: token, action: 'get_info' } },
-      );
-      if (refreshed?.challenge) {
-        setView({ kind: 'verified', info: refreshed.challenge });
-        await loadParticipants(refreshed.challenge.id);
-        if (action === 'update_title') {
-          setEditTitle(refreshed.challenge.title);
-        }
-      }
+      // 重新拉取
+      await loadInfo();
       if (action === 'close') track('challenge_closed');
       if (action === 'delete') {
-        track('challenge_closed'); // delete 也算关闭
-        try {
-          window.sessionStorage.removeItem(SESSION_KEY(manageSlug));
-        } catch {
-          // noop
-        }
+        track('challenge_closed');
         navigate('/');
         return;
       }
@@ -178,22 +130,22 @@ export default function Manage() {
   };
 
   const handleSaveTitle = () => {
-    if (view.kind !== 'verified') return;
-    if (editTitle.trim() === view.info.title) return;
+    if (state.kind !== 'ready') return;
+    if (editTitle.trim() === state.info.title) return;
     if (!editTitle.trim()) {
       alert('标题不能为空');
       return;
     }
-    callManage('update_title', { title: editTitle.trim() });
+    callAction('update_title', { title: editTitle.trim() });
   };
 
   const handleClose = () => {
     if (!confirm('确定关闭此挑战？关闭后无法再接受新提交')) return;
-    callManage('close');
+    callAction('close');
   };
 
   const handleReopen = () => {
-    callManage('reopen');
+    callAction('reopen');
   };
 
   const handleDelete = () => {
@@ -201,39 +153,30 @@ export default function Manage() {
       !confirm('⚠️ 确定删除此挑战？\n删除后所有链接（邀请、成绩、管理）都会失效。\n此操作不可逆。')
     )
       return;
-    callManage('delete');
+    callAction('delete');
   };
 
   // —— 渲染分支 ——
-  if (view.kind === 'verifying') {
+  if (state.kind === 'loading') {
     return (
       <Card>
         <CardContent className="text-muted-foreground flex items-center gap-3 pt-6 text-sm">
           <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          验证中…
+          加载管理面板…
         </CardContent>
       </Card>
     );
   }
 
-  if (view.kind === 'error') {
+  if (state.kind === 'error') {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>无法进入管理</CardTitle>
-          <CardDescription>{view.message}</CardDescription>
+          <CardTitle>无法打开管理</CardTitle>
+          <CardDescription>{state.message}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setToken('');
-              setView({ kind: 'enter_token' });
-            }}
-          >
-            重新输入
-          </Button>
-          <Button asChild variant="link">
+        <CardContent>
+          <Button asChild variant="outline">
             <Link to="/">返回首页</Link>
           </Button>
         </CardContent>
@@ -241,39 +184,8 @@ export default function Manage() {
     );
   }
 
-  if (view.kind === 'enter_token') {
-    return (
-      <div className="flex flex-1 flex-col gap-6 py-4">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold">管理挑战</h1>
-          <p className="text-muted-foreground text-sm">
-            请输入管理 token（发布成功时一次性展示过）
-          </p>
-        </header>
-        <Card>
-          <CardContent className="space-y-3 pt-6">
-            <input
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="管理 token"
-              autoFocus
-              className="border-input bg-background focus-visible:ring-ring flex h-11 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
-            />
-            <Button className="w-full" onClick={handleSubmitToken}>
-              进入管理
-            </Button>
-          </CardContent>
-        </Card>
-        <Button asChild variant="link">
-          <Link to="/">返回首页</Link>
-        </Button>
-      </div>
-    );
-  }
-
-  // view.kind === 'verified'
-  const info = view.info;
+  // ready
+  const info = state.info;
   const statusLabel = {
     draft: '草稿',
     published: '已发布',
@@ -298,9 +210,9 @@ export default function Manage() {
         <CardHeader>
           <CardTitle className="text-base">链接</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+        <CardContent>
           <CopyRow
-            label="邀请链接"
+            label="邀请链接（发给朋友）"
             value={`${typeof window !== 'undefined' ? window.location.origin : ''}/c/${info.slug}`}
           />
         </CardContent>
@@ -388,6 +300,10 @@ export default function Manage() {
           )}
         </CardContent>
       </Card>
+
+      <p className="text-muted-foreground text-center text-xs">
+        ⚠️ 这是私密管理链接，请勿公开分享。
+      </p>
 
       <Button asChild variant="link">
         <Link to="/">返回首页</Link>
