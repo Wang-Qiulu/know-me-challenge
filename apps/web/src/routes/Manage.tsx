@@ -83,11 +83,31 @@ export default function Manage() {
       },
     );
     if (error || !data) {
-      setView({ kind: 'error', message: '凭证无效或挑战已删除' });
-      try {
-        window.sessionStorage.removeItem(SESSION_KEY(manageSlug!));
-      } catch {
-        // noop
+      const status = (error as { context?: { status?: number } })?.context?.status;
+      const msg = (error as { message?: string })?.message ?? '';
+      let userMsg = '凭证无效或挑战已删除';
+      if (!status) {
+        // 无 status 说明是网络/CORS/parse 错
+        if (msg.includes('FunctionsFetchError') || msg.includes('Failed to send')) {
+          userMsg = '网络异常，请检查后重试';
+        } else {
+          userMsg = `连接异常：${msg.slice(0, 80)}`;
+        }
+      } else if (status === 403) {
+        userMsg = '管理 token 不正确，请重新输入';
+      } else if (status === 404) {
+        userMsg = '挑战不存在或已删除';
+      } else if (status >= 500) {
+        userMsg = `服务器异常（${status}），请稍后重试`;
+      }
+      setView({ kind: 'error', message: userMsg });
+      // 只有 403（凭证错）才清 sessionStorage
+      if (status === 403) {
+        try {
+          window.sessionStorage.removeItem(SESSION_KEY(manageSlug!));
+        } catch {
+          // noop
+        }
       }
       return;
     }
