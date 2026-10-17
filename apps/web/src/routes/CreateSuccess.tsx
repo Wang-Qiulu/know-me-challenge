@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { track } from '@/lib/track';
+import { INVITE_TEMPLATES, renderTemplate, type ShareTemplate } from '@/lib/share-templates';
 
 interface LocationState {
   challengeId: string;
@@ -49,6 +50,7 @@ export default function CreateSuccess() {
   const navigate = useNavigate();
   const state = location.state as LocationState | null;
   const [copy, setCopy] = useState<CopyState>({ invite: false, manageUrl: false });
+  const [shareTpl, setShareTpl] = useState<ShareTemplate>(() => INVITE_TEMPLATES[0]);
 
   useEffect(() => {
     // 没有 state 直接进 → 回到首页
@@ -59,11 +61,16 @@ export default function CreateSuccess() {
     track('challenge_published');
   }, [state, navigate]);
 
-  if (!state) return null;
+  // Hooks 必须在所有条件 return 之前调用（react-hooks/rules-of-hooks）
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const inviteUrl = state ? `${baseUrl}/c/${state.inviteSlug}` : '';
+  const manageUrl = state ? `${baseUrl}/m/${state.manageSlug}` : '';
+  const shareText = useMemo(
+    () => (inviteUrl ? renderTemplate(shareTpl, inviteUrl) : ''),
+    [shareTpl, inviteUrl],
+  );
 
-  const baseUrl = window.location.origin;
-  const inviteUrl = `${baseUrl}/c/${state.inviteSlug}`;
-  const manageUrl = `${baseUrl}/m/${state.manageSlug}`;
+  if (!state) return null;
 
   const copyTo = async (text: string, key: keyof CopyState) => {
     try {
@@ -82,18 +89,60 @@ export default function CreateSuccess() {
         <p className="text-muted-foreground text-sm">把链接发给朋友，让他们测测懂不懂你</p>
       </header>
 
-      {/* 邀请链接 */}
+      {/* 邀请链接 + 营销文案 */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">📨 邀请链接（发给朋友）</CardTitle>
+          <CardTitle className="text-base">📨 邀请文案（发给朋友）</CardTitle>
         </CardHeader>
-        <CardContent>
-          <CopyableField
-            label="邀请链接"
-            value={inviteUrl}
-            copied={copy.invite}
-            onCopy={() => copyTo(inviteUrl, 'invite')}
-          />
+        <CardContent className="space-y-3">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground text-xs">
+                文案风格：{shareTpl.emoji} {shareTpl.title}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  let next = shareTpl;
+                  while (next.id === shareTpl.id) {
+                    next = INVITE_TEMPLATES[Math.floor(Math.random() * INVITE_TEMPLATES.length)];
+                  }
+                  setShareTpl(next);
+                  setCopy((c) => ({ ...c, invite: false }));
+                }}
+                className="text-primary text-xs hover:underline"
+              >
+                换一个
+              </button>
+            </div>
+            <pre className="bg-muted/30 whitespace-pre-wrap break-words rounded-md border px-3 py-2 text-xs">
+              {shareText}
+            </pre>
+          </div>
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => {
+              track('result_shared');
+              copyTo(shareText, 'invite');
+            }}
+          >
+            {copy.invite ? '已复制 ✓' : '复制整段文案'}
+          </Button>
+          <details className="text-muted-foreground text-xs">
+            <summary className="hover:text-foreground cursor-pointer">只复制纯链接</summary>
+            <div className="bg-muted/20 mt-2 break-all rounded-md border px-3 py-2 font-mono text-xs">
+              {inviteUrl}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 w-full"
+              onClick={() => copyTo(inviteUrl, 'invite')}
+            >
+              只复制链接
+            </Button>
+          </details>
         </CardContent>
       </Card>
 
