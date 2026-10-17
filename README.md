@@ -1,116 +1,122 @@
 # 懂我挑战（Know Me Challenge）
 
-> 一款面向朋友、闺蜜和情侣的轻量熟人社交答题 Web 产品。
-> 移动端优先，无需注册，分享即参与。
+> **朋友之间的小测试：你真的懂我吗？**
+>
+> 创建 5 道关于自己的题，发给朋友，看他们能答对几道。
 
-## 产品定位
+## 这是什么？
 
-创建者发布 5 道个性化单选题并设置自己的真实答案，朋友通过分享链接参与答题，最终形成「创建 → 邀请 → 答题 → 揭晓 → 分享 → 再创建」的传播闭环。
+一款**轻量级的熟人答题小程序**。你出 5 道关于自己的单选题（"我最喜欢的电影是？"），写下你的真实答案，然后把链接发给朋友。他们答完会拿到一个分数和有趣的称号（比如"灵魂挚友"或"最熟悉的陌生人"），同时你也能在后台看到排行榜，知道谁最懂你。
 
-## 仓库内容
+整个过程不需要注册账号，点开链接就能玩。
 
-- [`需求文档.md`](./需求文档.md) — 产品 PRD（V1.0）
-- [`执行计划.md`](./执行计划.md) — 12 个阶段的分阶段开发计划
-- [`apps/web/`](./apps/web) — React + TypeScript 前端（Vite + Tailwind + shadcn/ui）
+## 怎么玩？
+
+### 📝 创建挑战（30 秒）
+
+1. 打开 [懂我挑战](https://qiululog.cyou) → 点"创建你的挑战"
+2. 已经有 5 道默认题目，直接改成你想问朋友的题
+3. 每道题选一个**你的真实答案**（这是朋友猜对的标准）
+4. 点发布 → 拿到**邀请链接**（发给朋友）和**管理链接**（自己保管）
+
+### 📩 邀请朋友
+
+- 把邀请链接通过微信、QQ 等发给朋友
+- 朋友点开 → 输入昵称 → 答 5 道题 → 立刻看到分数和称号
+
+### 🎉 查看成绩
+
+- 答完题的朋友会拿到"灵魂挚友""心有灵犀""半知己""普通朋友""点头之交""最熟悉的陌生人"中的一个称号
+- 每个人可以把自己的成绩发给创建者
+- 创建者打开管理链接就能看到所有朋友的成绩排行榜
+
+### 🔐 管理你的挑战
+
+- 改标题、关闭挑战、删除挑战，都通过管理链接操作
+- **管理链接就是凭证**——保管好就行，无需记额外的密码
+
+## 主要功能
+
+| 功能            | 说明                                   |
+| --------------- | -------------------------------------- |
+| 🎯 5 道默认题目 | 直接改就能用，不用从零开始             |
+| 📊 自动计分     | 后端算分，前端永远看不到正确答案       |
+| 💬 趣味称号     | 6 个称号，根据分数自动匹配             |
+| 🏆 排行榜       | 所有人成绩排名，同分并列               |
+| 🔗 一键分享     | 复制文案 + 链接，配有 4 种营销话术模板 |
+| 🌙 移动优先     | 专为手机设计，平板和桌面也能用         |
+| ⚡ 无需注册     | 点链接即玩，保护隐私                   |
+| 🛡️ 防作弊       | 同一朋友只能正式答一次                 |
 
 ## 技术栈
 
-- 前端：React 18 + TypeScript + Vite 6 + Tailwind CSS + shadcn/ui 风格组件
-- 路由：React Router 7
-- 后端：Supabase（Postgres + RLS + Edge Functions）— 阶段 1 接入
-- 包管理：pnpm 10（monorepo workspace）
-- 代码质量：ESLint 9（flat config）+ Prettier + Husky pre-commit
-- 部署：Vercel（前端）+ Supabase Cloud（后端）
+- **前端**：React 18 + TypeScript + Vite + Tailwind CSS
+- **后端**：Supabase（Postgres 数据库 + Edge Functions）
+- **部署**：Vercel（前端）+ Supabase Cloud（后端）
+- **包管理**：pnpm 10（monorepo 风格）
 
-## 本地开发
+---
+
+## 🛠️ 本地开发
 
 ### 环境要求
 
 - Node.js >= 20
-- pnpm >= 10（推荐通过 Corepack 启用：`corepack enable`）
+- pnpm >= 10（推荐 `corepack enable`）
 
 ### 启动步骤
 
 ```bash
-# 1. 安装依赖
+# 1. 克隆 + 安装依赖
+git clone https://github.com/Wang-Qiulu/know-me-challenge.git
+cd know-me-challenge
 pnpm install
 
-# 2. 配置环境变量（Supabase 项目，阶段 1 后才会有真实值）
+# 2. 配置环境变量
 cp apps/web/.env.example apps/web/.env.local
-# 然后填入 VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+# 在 .env.local 里填入 Supabase 的 URL 和 anon key
 
-# 3. 启动 web 子包
+# 3. 启动开发服务器
 pnpm dev
 
-# 4. 浏览器访问
-# http://localhost:5173
+# 浏览器打开 http://localhost:5173
 ```
 
 ### 常用命令
 
-```bash
-pnpm dev               # 启动前端（vite dev）
-pnpm build             # 类型检查 + 生产构建
-pnpm preview           # 本地预览生产构建产物
-pnpm lint              # ESLint 检查
-pnpm typecheck         # TypeScript 类型检查
-pnpm format            # Prettier 格式化
-pnpm format:check      # 仅检查格式
-```
+| 命令             | 作用                           |
+| ---------------- | ------------------------------ |
+| `pnpm dev`       | 启动开发服务器                 |
+| `pnpm build`     | 生产构建（含 TypeScript 检查） |
+| `pnpm lint`      | 代码风格检查                   |
+| `pnpm typecheck` | TypeScript 类型检查            |
+| `pnpm format`    | 自动格式化代码                 |
 
-## 目录结构
+## 仓库目录
 
 ```
 know-me-challenge/
-├── apps/
-│   └── web/                  # 前端
-│       ├── src/
-│       │   ├── routes/        # 路由页面（Home/Create/Quiz/Result/...）
-│       │   ├── components/
-│       │   │   ├── ui/        # shadcn 风格基础组件
-│       │   │   └── layout/    # 布局组件
-│       │   ├── lib/           # supabase / utils / track
-│       │   ├── hooks/
-│       │   ├── types/
-│       │   ├── App.tsx        # 路由配置
-│       │   ├── main.tsx       # 入口
-│       │   └── index.css      # Tailwind + shadcn 主题变量
-│       ├── public/
-│       ├── index.html
-│       ├── vite.config.ts
-│       ├── tailwind.config.ts
-│       ├── tsconfig.json
-│       ├── eslint.config.js
-│       └── .env.example
-├── .husky/                    # pre-commit
-├── .gitignore
-├── .prettierrc.json
-├── .prettierignore
-├── .npmrc
-├── package.json               # workspace root
-├── pnpm-workspace.yaml
-├── 需求文档.md
-├── 执行计划.md
-└── README.md
+├── apps/web/               # 前端代码（React + Vite）
+│   └── src/
+│       ├── routes/         # 页面（首页/创建/答题/成绩/排行榜/管理）
+│       ├── components/     # 组件
+│       └── lib/            # Supabase 客户端 / 工具函数
+├── supabase/               # 后端（数据库 + 4 个 Edge Functions）
+│   ├── migrations/         # 数据库迁移脚本
+│   └── functions/          # 服务端函数
+├── 需求文档.md             # 完整 PRD
+├── 执行计划.md             # 12 个阶段的开发记录
+└── README.md               # 你正在看的这个
 ```
 
-## 阶段进度
+## 路线图
 
-- [x] **阶段 0** — 项目初始化与脚手架 ✅
-- [x] **阶段 1** — Supabase 数据层 + RLS + Edge Functions ✅
-- [x] **阶段 2** — 创建挑战主流程 ✅
-- [x] **阶段 3** — 邀请链接 + 匿名身份 ✅
-- [ ] 阶段 4 — 答题 + 服务端计分
-- [x] **阶段 5** — 成绩页 + 分享卡 ✅
-- [x] **阶段 6** — 排行榜 ✅
-- [x] **阶段 7** — 管理链接 + 挑战生命周期 ✅
-- [ ] 阶段 8 — 传播闭环 + 埋点
-- [x] **阶段 9** — 响应式 + 移动端打磨 ✅
-- [x] **阶段 10** — P1 体验增强 ✅
-- [ ] 阶段 11 — 部署与上线验收
-
-完整任务清单见 [`执行计划.md`](./执行计划.md)。
+V1.0 MVP 已完成：创建挑战、答题、成绩、排行榜、管理全链路跑通。后续可能开发 AI 出题、好友关系等。
 
 ## 许可
 
 仅供学习和产品验证使用。
+
+---
+
+**在线体验**：[https://qiululog.cyou](https://qiululog.cyou)
