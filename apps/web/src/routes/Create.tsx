@@ -89,8 +89,10 @@ export default function Create() {
               {q.options.map((opt, oi) => (
                 <label
                   key={oi}
-                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
-                    q.correctOption === oi ? 'border-primary bg-primary/5' : 'border-input'
+                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
+                    q.correctOption === oi
+                      ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
+                      : 'border-input hover:bg-muted/40'
                   }`}
                 >
                   <input

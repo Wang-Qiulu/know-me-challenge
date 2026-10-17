@@ -21,7 +21,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
@@ -53,9 +53,40 @@
     @apply h-full;
   }
   body {
-    @apply bg-background text-foreground;
-    /* iOS 安全区适配 */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    @apply bg-background text-foreground antialiased;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
   }
+  /* input/textarea 必须可编辑，恢复可选中 */
+  input,
+  textarea,
+  [contenteditable='true'] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+/* 全局动画：spinner */
+@keyframes kmc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.kmc-spin {
+  animation: kmc-spin 0.7s linear infinite;
+}
+
+/* 全局动画：fade in */
+@keyframes kmc-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.kmc-fade-in {
+  animation: kmc-fade-in 0.25s ease-out;
 }
