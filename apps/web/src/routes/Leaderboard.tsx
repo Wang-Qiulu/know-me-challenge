@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loading } from '@/components/ui/loading';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/track';
 
@@ -129,9 +130,8 @@ export default function Leaderboard() {
   if (state === 'loading') {
     return (
       <Card>
-        <CardContent className="text-muted-foreground flex items-center gap-3 pt-6 text-sm">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          加载排行榜…
+        <CardContent className="pt-6">
+          <Loading text="加载排行榜…" />
         </CardContent>
       </Card>
     );
@@ -161,8 +161,10 @@ export default function Leaderboard() {
 
       {state === 'empty' ? (
         <Card>
-          <CardContent className="text-muted-foreground pt-6">
-            还没有人参与此挑战，快去做第一个！
+          <CardContent className="text-muted-foreground flex flex-col items-center gap-2 py-8 text-center">
+            <div className="text-4xl">🎯</div>
+            <p className="text-sm">还没有人参与此挑战</p>
+            <p className="text-xs">快去做第一个！</p>
           </CardContent>
         </Card>
       ) : (

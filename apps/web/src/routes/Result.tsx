@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loading } from '@/components/ui/loading';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/track';
 import { RESULT_TEMPLATES, renderResultTemplate, type ResultTemplate } from '@/lib/share-templates';
@@ -122,9 +123,8 @@ export default function Result() {
   if (state === 'network_error' || (state === 'loading' && !data)) {
     return (
       <Card>
-        <CardContent className="text-muted-foreground flex items-center gap-3 pt-6 text-sm">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          {state === 'loading' ? '加载成绩中…' : errorMsg || '网络异常'}
+        <CardContent className="pt-6">
+          <Loading text={state === 'loading' ? '加载成绩中…' : errorMsg || '网络异常'} />
         </CardContent>
       </Card>
     );

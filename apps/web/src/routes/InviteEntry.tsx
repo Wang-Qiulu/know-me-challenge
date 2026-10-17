@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loading } from '@/components/ui/loading';
 import { useAnonToken } from '@/hooks/useAnonToken';
 import { track } from '@/lib/track';
 import { supabase } from '@/lib/supabase';
@@ -166,9 +167,8 @@ export default function InviteEntry() {
   if (state === 'loading' || !anonToken || !info) {
     return (
       <Card>
-        <CardContent className="text-muted-foreground flex items-center gap-3 pt-6 text-sm">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          正在准备挑战…
+        <CardContent className="pt-6">
+          <Loading text="正在准备挑战…" />
         </CardContent>
       </Card>
     );

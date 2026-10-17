@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loading } from '@/components/ui/loading';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/lib/track';
 
@@ -147,9 +148,8 @@ export default function Quiz() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="text-muted-foreground flex items-center gap-3 pt-6 text-sm">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          加载题目中…
+        <CardContent className="pt-6">
+          <Loading text="加载题目中…" />
         </CardContent>
       </Card>
     );
